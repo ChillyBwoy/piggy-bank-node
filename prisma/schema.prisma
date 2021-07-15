@@ -1,0 +1,94 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator typegraphql {
+  provider = "typegraphql-prisma"
+}
+
+enum UserRole {
+  ROOT
+  DEVELOPER
+  INNER_USER
+  OUTER_USER
+}
+
+enum ProposalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id   String @id @default(uuid())
+  name String
+
+  votes     Vote[]
+  proposals Proposal[]
+  services  Ownership[]
+
+  @@map("user")
+}
+
+model Service {
+  id   String @id @default(uuid())
+  name String
+
+  proposals Proposal[]
+  owners    Ownership[]
+
+  @@map("service")
+}
+
+model Vote {
+  id      String @id @default(uuid())
+  comment String
+
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId String @map("user_id")
+
+  proposal          Proposal @relation(fields: [proposalAuthorId, proposalServiceId], references: [authorId, serviceId])
+  proposalAuthorId  String   @map("proposal_author_id")
+  proposalServiceId String   @map("proposal_service_id")
+
+  @@map("vote")
+}
+
+model Ownership {
+  role UserRole
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @map("user_id")
+
+  service   Service @relation(fields: [serviceId], references: [id])
+  serviceId String  @map("service_id")
+
+  @@id([userId, serviceId])
+  @@map("ownership")
+}
+
+model Proposal {
+  description String
+  status      ProposalStatus
+  createdAt   DateTime
+  updatedat   DateTime
+
+  Vote Vote[]
+
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId String @map("user_id")
+
+  service   Service @relation(fields: [serviceId], references: [id])
+  serviceId String  @map("service_id")
+
+  @@id([authorId, serviceId])
+  @@map("proposal")
+}
